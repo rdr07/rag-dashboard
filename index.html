@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Agent Monitor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <div class="header-logo">⬡</div>
+      <div class="header-brand">
+        <h1>RAG AGENT MONITOR</h1>
+        <p class="header-sub">N8N AGENT HEALTH MONITOR // DIYA SECURITY OPS</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge">
+        <span class="live-dot"></span>
+        LIVE MONITORING
+      </div>
+      <p id="clock"></p>
+    </div>
+  </header>
+
+  <!-- ALERT TICKER -->
+  <div class="ticker-wrap">
+    <div class="ticker-label">⚠ ALERT</div>
+    <div class="ticker-track">
+      <div class="ticker-content">
+        [16:06:11] Prompt injection attempt detected — Chat Webhook &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+        [15:43:02] Unusual query pattern — AI Agent &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+        [14:21:44] API rate limit hit — Gemini API &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+        [13:58:30] Embedding model timeout — Pinecone &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+        [13:10:05] File hash mismatch — Google Drive &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+      </div>
+    </div>
+  </div>
+
+  <main class="dashboard">
+
+    <!-- 1. STAT CARDS -->
+    <div class="card">
+      <p class="card-label">Total Queries</p>
+      <h2 class="card-value" id="query-count">0</h2>
+      <p class="card-sub">Since last restart</p>
+    </div>
+    <div class="card">
+      <p class="card-label">Response Time</p>
+      <h2 class="card-value cyan" id="response-time">0ms</h2>
+      <p class="card-sub">Average latency</p>
+    </div>
+    <div class="card">
+      <p class="card-label">Vectors in Pinecone</p>
+      <h2 class="card-value green" id="vector-count">0</h2>
+      <p class="card-sub">Indexed documents</p>
+    </div>
+    <div class="card">
+      <p class="card-label">Threats Detected</p>
+      <h2 class="card-value danger" id="threat-count">0</h2>
+      <p class="card-sub">Injections / anomalies</p>
+    </div>
+
+    <!-- 2. THREAT DETECTION TIMELINE -->
+    <div class="card wide">
+      <div class="chart-header">
+        <p class="card-label">Threat Detection Timeline</p>
+        <span class="badge">LAST 24H</span>
+      </div>
+      <canvas id="threatChart" height="80"></canvas>
+    </div>
+
+    <!-- 3. THREAT LEVEL GAUGE -->
+    <div class="card half">
+      <div class="chart-header">
+        <p class="card-label">Threat Level</p>
+        <span class="badge warn">ELEVATED</span>
+      </div>
+      <div class="gauge-wrap">
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <circle cx="80" cy="80" r="65" fill="none" stroke="#0a2540" stroke-width="14"/>
+          <circle cx="80" cy="80" r="65" fill="none" stroke="#ffb800" stroke-width="14"
+            stroke-dasharray="408" stroke-dashoffset="143"
+            stroke-linecap="round" transform="rotate(-90 80 80)"/>
+          <text x="80" y="75" text-anchor="middle" fill="white"
+            font-family="Courier New" font-size="32" font-weight="bold">67</text>
+          <text x="80" y="95" text-anchor="middle" fill="#3a6080"
+            font-family="Courier New" font-size="11">/ 100</text>
+        </svg>
+      </div>
+      <div class="threat-levels">
+        <div class="threat-level-row">
+          <span class="tl-label critical">CRITICAL</span>
+          <div class="tl-bar"><div class="tl-fill critical" style="width:20%"></div></div>
+          <span class="tl-count">4</span>
+        </div>
+        <div class="threat-level-row">
+          <span class="tl-label high">HIGH</span>
+          <div class="tl-bar"><div class="tl-fill high" style="width:45%"></div></div>
+          <span class="tl-count">9</span>
+        </div>
+        <div class="threat-level-row">
+          <span class="tl-label medium">MEDIUM</span>
+          <div class="tl-bar"><div class="tl-fill medium" style="width:55%"></div></div>
+          <span class="tl-count">10</span>
+        </div>
+        <div class="threat-level-row">
+          <span class="tl-label low">LOW</span>
+          <div class="tl-bar"><div class="tl-fill low" style="width:70%"></div></div>
+          <span class="tl-count">14</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. N8N WORKFLOW HEALTH -->
+    <div class="card half">
+      <div class="chart-header">
+        <p class="card-label">N8N Workflow Health</p>
+        <span class="badge">99.2% SUCCESS</span>
+      </div>
+      <div class="workflow-list">
+        <div class="workflow-row">
+          <span class="workflow-name">PDF Ingestion</span>
+          <div class="wf-bar-track"><div class="wf-bar-fill" style="width:95%"></div></div>
+          <span class="wf-runs">412 runs</span>
+        </div>
+        <div class="workflow-row">
+          <span class="workflow-name">Gemini Embedding</span>
+          <div class="wf-bar-track"><div class="wf-bar-fill" style="width:88%"></div></div>
+          <span class="wf-runs">389 runs</span>
+        </div>
+        <div class="workflow-row">
+          <span class="workflow-name">Pinecone Upsert</span>
+          <div class="wf-bar-track"><div class="wf-bar-fill warn" style="width:72%"></div></div>
+          <span class="wf-runs">203 runs</span>
+        </div>
+        <div class="workflow-row">
+          <span class="workflow-name">Chat Response</span>
+          <div class="wf-bar-track"><div class="wf-bar-fill" style="width:99%"></div></div>
+          <span class="wf-runs">77 runs</span>
+        </div>
+        <div class="workflow-row">
+          <span class="workflow-name">Drive Trigger</span>
+          <div class="wf-bar-track"><div class="wf-bar-fill" style="width:80%"></div></div>
+          <span class="wf-runs">156 runs</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. PIPELINE NODE MAP -->
+    <div class="card wide">
+      <p class="card-label">Pipeline Node Health</p>
+      <div class="pipeline">
+        <div class="node active">
+          <div class="node-circle">📁</div>
+          <p class="node-name">Google Drive</p>
+          <p class="node-status">ACTIVE</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node active">
+          <div class="node-circle">⬇</div>
+          <p class="node-name">Download File</p>
+          <p class="node-status">ACTIVE</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node idle">
+          <div class="node-circle">📄</div>
+          <p class="node-name">PDF Extract</p>
+          <p class="node-status">IDLE</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node active">
+          <div class="node-circle">🔷</div>
+          <p class="node-name">Pinecone</p>
+          <p class="node-status">ACTIVE</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node active">
+          <div class="node-circle">🤖</div>
+          <p class="node-name">AI Agent</p>
+          <p class="node-status">ACTIVE</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node idle">
+          <div class="node-circle">💬</div>
+          <p class="node-name">Chat Output</p>
+          <p class="node-status">IDLE</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. SECURITY THREATS TABLE -->
+    <div class="card wide">
+      <p class="card-label">Security Events</p>
+      <table class="threat-table">
+        <thead>
+          <tr>
+            <th>TIME</th>
+            <th>EVENT</th>
+            <th>SOURCE</th>
+            <th>SEVERITY</th>
+          </tr>
+        </thead>
+        <tbody id="threat-table-body"></tbody>
+      </table>
+    </div>
+
+    <!-- 7. ACTIVITY LOG -->
+    <div class="card wide">
+      <p class="card-label">Live Activity Log</p>
+      <div id="log-list"></div>
+    </div>
+
+  </main>
+
+  <footer>
+    <p>INSTANCE // 3c155030 · WORKFLOW // WehNpRzyRjwIQ2jD · MODEL // GEMINI-EMBEDDING-001</p>
+    <p>DIYA SECURITY OPS CENTER · 2026</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
