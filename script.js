@@ -14,10 +14,11 @@ updateClock();
 // ── 2. REAL N8N DATA ──
 async function fetchN8nData() {
   try {
-    const response = await fetch(
-      `${N8N_URL}/api/v1/executions?workflowId=${WORKFLOW_ID}&limit=25`,
-      { headers: { 'X-N8N-API-KEY': API_KEY } }
-    );
+    const PROXY = 'https://corsproxy.io/?';
+const response = await fetch(
+  PROXY + encodeURIComponent(`${N8N_URL}/api/v1/executions?workflowId=${WORKFLOW_ID}&limit=25`),
+  { headers: { 'X-N8N-API-KEY': API_KEY } }
+);
 
     const data = await response.json();
     const executions = data.data || [];
@@ -187,3 +188,4 @@ new Chart(ctx, {
     }
   }
 });
+
