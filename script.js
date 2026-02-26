@@ -1,3 +1,7 @@
+const N8N_URL = 'https://diyarathod.app.n8n.cloud';
+const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwYWQ1MjIwMC1kOTlmLTRiY2YtYmQzOC0zNzQ2MDgzNWFiNTQiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiY2M0NTA3ODAtMWY2MS00OWIwLWFmMzgtYzM0ZWZjYzFiYjBjIiwiaWF0IjoxNzcyMTMyNzk5LCJleHAiOjE3NzQ2NTI0MDB9.y6p0eXFKZU7P76ualqEvVV4lyhhAFCqsWS5S-g4kN4w'; // paste key here
+const WORKFLOW_ID = 'WehNpRzyRjwIQ2jD';
+
 // ── 1. LIVE CLOCK ──
 function updateClock() {
   const now = new Date();
@@ -140,3 +144,4 @@ setInterval(() => {
     document.getElementById('query-count').textContent = queryBase.toLocaleString();
   }
 }, 3000);
+
