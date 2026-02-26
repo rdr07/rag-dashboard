@@ -1,5 +1,5 @@
 const N8N_URL = 'https://diyarathod.app.n8n.cloud';
-const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwYWQ1MjIwMC1kOTlmLTRiY2YtYmQzOC0zNzQ2MDgzNWFiNTQiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiY2M0NTA3ODAtMWY2MS00OWIwLWFmMzgtYzM0ZWZjYzFiYjBjIiwiaWF0IjoxNzcyMTMyNzk5LCJleHAiOjE3NzQ2NTI0MDB9.y6p0eXFKZU7P76ualqEvVV4lyhhAFCqsWS5S-g4kN4w'; // paste key here
+const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwYWQ1MjIwMC1kOTlmLTRiY2YtYmQzOC0zNzQ2MDgzNWFiNTQiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiY2M0NTA3ODAtMWY2MS00OWIwLWFmMzgtYzM0ZWZjYzFiYjBjIiwiaWF0IjoxNzcyMTMyNzk5LCJleHAiOjE3NzQ2NTI0MDB9.y6p0eXFKZU7P76ualqEvVV4lyhhAFCqsWS5S-g4kN4w'; 
 const WORKFLOW_ID = 'WehNpRzyRjwIQ2jD';
 
 // ── 1. LIVE CLOCK ──
@@ -11,36 +11,81 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ── 2. COUNT UP ANIMATIONS ──
-function countUp(elementId, target) {
-  const el = document.getElementById(elementId);
-  let current = 0;
-  const step = target / 60;
-  const timer = setInterval(() => {
-    current += step;
-    if (current >= target) {
-      el.textContent = target.toLocaleString();
-      clearInterval(timer);
+// ── 2. REAL N8N DATA ──
+async function fetchN8nData() {
+  try {
+    const response = await fetch(
+      `${N8N_URL}/api/v1/executions?workflowId=${WORKFLOW_ID}&limit=25`,
+      { headers: { 'X-N8N-API-KEY': API_KEY } }
+    );
+
+    const data = await response.json();
+    const executions = data.data || [];
+
+    // Update total queries with real count
+    document.getElementById('query-count').textContent =
+      executions.length.toLocaleString();
+
+    // Calculate real average response time
+    const times = executions
+      .filter(e => e.stoppedAt && e.startedAt)
+      .map(e => new Date(e.stoppedAt) - new Date(e.startedAt));
+
+    if (times.length > 0) {
+      const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+      document.getElementById('response-time').textContent = avg + 'ms';
     } else {
-      el.textContent = Math.floor(current).toLocaleString();
+      document.getElementById('response-time').textContent = '0ms';
     }
-  }, 16);
+
+    // Count failed executions as threats
+    const failed = executions.filter(e => e.status === 'error').length;
+    document.getElementById('threat-count').textContent = failed;
+
+    // Update activity log with real execution data
+    const logList = document.getElementById('log-list');
+    logList.innerHTML = '';
+
+    if (executions.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'log-entry info';
+      empty.textContent = 'No executions found yet — run your workflow!';
+      logList.appendChild(empty);
+    } else {
+      executions.slice(0, 8).forEach(e => {
+        const entry = document.createElement('div');
+        const status = e.status === 'success' ? 'success' : 'danger';
+        const time = new Date(e.startedAt).toLocaleTimeString();
+        entry.className = 'log-entry ' + status;
+        entry.textContent = `${time} — Execution ${e.status.toUpperCase()} (ID: ${e.id.slice(0,8)}...)`;
+        logList.appendChild(entry);
+      });
+    }
+
+    console.log('✅ n8n connected! Executions loaded:', executions.length);
+
+  } catch (error) {
+    console.log('❌ n8n connection failed:', error.message);
+
+    // Fall back to demo data if API fails
+    document.getElementById('query-count').textContent = '1,247';
+    document.getElementById('response-time').textContent = '843ms';
+    document.getElementById('threat-count').textContent = '7';
+
+    const logList = document.getElementById('log-list');
+    logList.innerHTML = '';
+    demoLogs.forEach((log, i) => {
+      setTimeout(() => addLog(log), i * 500);
+    });
+  }
 }
 
-countUp('query-count', 1247);
-countUp('vector-count', 3842);
-countUp('threat-count', 7);
+// Fetch immediately then every 30 seconds
+fetchN8nData();
+setInterval(fetchN8nData, 30000);
 
-let rt = 0;
-const rtEl = document.getElementById('response-time');
-const rtTimer = setInterval(() => {
-  rt += 14;
-  if (rt >= 843) { rtEl.textContent = '843ms'; clearInterval(rtTimer); }
-  else rtEl.textContent = rt + 'ms';
-}, 16);
-
-// ── 3. ACTIVITY LOG ──
-const logs = [
+// ── 3. DEMO LOGS (used as fallback if API fails) ──
+const demoLogs = [
   { type: 'success', message: 'Chat message processed — response delivered in 834ms' },
   { type: 'info',    message: 'Google Drive: file change detected — Jungle Palace 45e.pdf' },
   { type: 'success', message: 'PDF extracted — 18 chunks embedded into Pinecone' },
@@ -56,9 +101,16 @@ function addLog(log) {
   logList.insertBefore(entry, logList.firstChild);
 }
 
-logs.forEach((log, i) => setTimeout(() => addLog(log), i * 500));
+// ── 4. VECTORS COUNT (Pinecone - stays as demo for now) ──
+let v = 0;
+const vEl = document.getElementById('vector-count');
+const vTimer = setInterval(() => {
+  v += 64;
+  if (v >= 3842) { vEl.textContent = '3,842'; clearInterval(vTimer); }
+  else vEl.textContent = v.toLocaleString();
+}, 16);
 
-// ── 4. SECURITY THREATS TABLE ──
+// ── 5. SECURITY THREATS TABLE ──
 const threats = [
   { time: '16:06:11', event: 'Prompt Injection Attempt',  source: 'Chat Webhook', severity: 'high' },
   { time: '15:43:02', event: 'Unusual Query Pattern',     source: 'AI Agent',     severity: 'med'  },
@@ -81,7 +133,7 @@ threats.forEach((t, i) => {
   }, i * 300);
 });
 
-// ── 5. THREAT DETECTION LINE CHART ──
+// ── 6. THREAT DETECTION LINE CHART ──
 const ctx = document.getElementById('threatChart').getContext('2d');
 new Chart(ctx, {
   type: 'line',
@@ -135,13 +187,3 @@ new Chart(ctx, {
     }
   }
 });
-
-// ── 6. LIVE QUERY COUNTER (simulates real activity) ──
-let queryBase = 1247;
-setInterval(() => {
-  if (Math.random() > 0.6) {
-    queryBase++;
-    document.getElementById('query-count').textContent = queryBase.toLocaleString();
-  }
-}, 3000);
-
