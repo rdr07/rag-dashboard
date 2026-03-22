@@ -1,7 +1,6 @@
 const JSONBIN_ID = '69bfbba1aa77b81da9096eea';
 const JSONBIN_KEY = '$2a$10$Hn26zN1NYwQHRVnuLPfXjumfgHscmKPHbf3a1nNpenXM/zuFc.T5i'; // paste from notepad, don't share here!
 
-// ── 1. LIVE CLOCK ──
 function updateClock() {
   const now = new Date();
   document.getElementById('clock').textContent =
@@ -10,7 +9,6 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ── 2. FETCH LIVE DATA FROM JSONBIN ──
 async function fetchLiveData() {
   try {
     const response = await fetch(
@@ -24,30 +22,28 @@ async function fetchLiveData() {
     document.getElementById('response-time').textContent = r.responseTime + 'ms';
     document.getElementById('threat-count').textContent = r.errors;
 
-  const logList = document.getElementById('log-list');
+    const logList = document.getElementById('log-list');
+    logList.innerHTML = '';
 
-// Clear old entries first
-logList.innerHTML = '';
+    const entry = document.createElement('div');
+    entry.className = r.errors > 0 ? 'log-entry warn' : 'log-entry success';
+    entry.textContent = `✅ Live sync: ${new Date().toLocaleTimeString()} — Executions: ${r.executions} — Errors: ${r.errors}`;
+    logList.appendChild(entry);
 
-// Add status entry
-const entry = document.createElement('div');
-entry.className = r.errors > 0 ? 'log-entry warn' : 'log-entry success';
-entry.textContent = `✅ Live sync: ${new Date().toLocaleTimeString()} — Executions: ${r.executions} — Errors: ${r.errors}`;
-logList.appendChild(entry);
+    const entry2 = document.createElement('div');
+    entry2.className = 'log-entry info';
+    entry2.textContent = `🕐 Last n8n update: ${r.lastUpdated}`;
+    logList.appendChild(entry2);
 
-// Add last updated entry
-const logList = document.getElementById('log-list');
-logList.innerHTML = '';
-const entry = document.createElement('div');
-entry.className = r.errors > 0 ? 'log-entry warn' : 'log-entry success';
-entry.textContent = `✅ Live sync: ${new Date().toLocaleTimeString()} — Executions: ${r.executions} — Errors: ${r.errors}`;
-logList.appendChild(entry);
-const entry2 = document.createElement('div');
-entry2.className = 'log-entry info';
-entry2.textContent = `🕐 Last n8n update: ${r.lastUpdated}`;
-logList.appendChild(entry2);
+    console.log('✅ JSONBin connected!', r);
+  } catch(e) {
+    console.log('❌ Error:', e);
+  }
+}
 
-// ── 3. VECTORS COUNT ──
+fetchLiveData();
+setInterval(fetchLiveData, 10000);
+
 let v = 0;
 const vEl = document.getElementById('vector-count');
 const vTimer = setInterval(() => {
@@ -56,7 +52,6 @@ const vTimer = setInterval(() => {
   else vEl.textContent = v.toLocaleString();
 }, 16);
 
-// ── 4. SECURITY THREATS TABLE ──
 const threats = [
   { time: '16:06:11', event: 'Prompt Injection Attempt',  source: 'Chat Webhook', severity: 'high' },
   { time: '15:43:02', event: 'Unusual Query Pattern',     source: 'AI Agent',     severity: 'med'  },
@@ -79,7 +74,6 @@ threats.forEach((t, i) => {
   }, i * 300);
 });
 
-// ── 5. THREAT DETECTION LINE CHART ──
 const ctx = document.getElementById('threatChart').getContext('2d');
 new Chart(ctx, {
   type: 'line',
