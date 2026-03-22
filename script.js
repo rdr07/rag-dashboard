@@ -36,19 +36,16 @@ entry.textContent = `✅ Live sync: ${new Date().toLocaleTimeString()} — Execu
 logList.appendChild(entry);
 
 // Add last updated entry
+const logList = document.getElementById('log-list');
+logList.innerHTML = '';
+const entry = document.createElement('div');
+entry.className = r.errors > 0 ? 'log-entry warn' : 'log-entry success';
+entry.textContent = `✅ Live sync: ${new Date().toLocaleTimeString()} — Executions: ${r.executions} — Errors: ${r.errors}`;
+logList.appendChild(entry);
 const entry2 = document.createElement('div');
 entry2.className = 'log-entry info';
 entry2.textContent = `🕐 Last n8n update: ${r.lastUpdated}`;
 logList.appendChild(entry2);
-
-    console.log('✅ JSONBin connected!', r);
-  } catch(e) {
-    console.log('❌ Error:', e);
-  }
-}
-
-fetchLiveData();
-setInterval(fetchLiveData, 10000);
 
 // ── 3. VECTORS COUNT ──
 let v = 0;
