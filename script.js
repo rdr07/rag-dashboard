@@ -24,11 +24,22 @@ async function fetchLiveData() {
     document.getElementById('response-time').textContent = r.responseTime + 'ms';
     document.getElementById('threat-count').textContent = r.errors;
 
-    const logList = document.getElementById('log-list');
-    const entry = document.createElement('div');
-    entry.className = r.errors > 0 ? 'log-entry danger' : 'log-entry success';
-    entry.textContent = `Last updated: ${r.lastUpdated} — Executions: ${r.executions}`;
-    logList.insertBefore(entry, logList.firstChild);
+  const logList = document.getElementById('log-list');
+
+// Clear old entries first
+logList.innerHTML = '';
+
+// Add status entry
+const entry = document.createElement('div');
+entry.className = r.errors > 0 ? 'log-entry warn' : 'log-entry success';
+entry.textContent = `✅ Live sync: ${new Date().toLocaleTimeString()} — Executions: ${r.executions} — Errors: ${r.errors}`;
+logList.appendChild(entry);
+
+// Add last updated entry
+const entry2 = document.createElement('div');
+entry2.className = 'log-entry info';
+entry2.textContent = `🕐 Last n8n update: ${r.lastUpdated}`;
+logList.appendChild(entry2);
 
     console.log('✅ JSONBin connected!', r);
   } catch(e) {
