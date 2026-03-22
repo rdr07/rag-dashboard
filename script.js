@@ -1,6 +1,5 @@
-const N8N_URL = 'https://diyarathod.app.n8n.cloud';
-const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwYWQ1MjIwMC1kOTlmLTRiY2YtYmQzOC0zNzQ2MDgzNWFiNTQiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiY2M0NTA3ODAtMWY2MS00OWIwLWFmMzgtYzM0ZWZjYzFiYjBjIiwiaWF0IjoxNzcyMTMyNzk5LCJleHAiOjE3NzQ2NTI0MDB9.y6p0eXFKZU7P76ualqEvVV4lyhhAFCqsWS5S-g4kN4w'; 
-const WORKFLOW_ID = 'WehNpRzyRjwIQ2jD';
+const JSONBIN_ID = '69bfbba1aa77b81da9096eea';
+const JSONBIN_KEY = '$2a$10$Hn26zN1NYwQHRVnuLPfXjumfgHscmKPHbf3a1nNpenXM/zuFc.T5i'; // paste from notepad, don't share here!
 
 // ── 1. LIVE CLOCK ──
 function updateClock() {
@@ -11,98 +10,36 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ── 2. REAL N8N DATA ──
-async function fetchN8nData() {
+// ── 2. FETCH LIVE DATA FROM JSONBIN ──
+async function fetchLiveData() {
   try {
-    const PROXY = 'https://corsproxy.io/?';
-const response = await fetch(
-  PROXY + encodeURIComponent(`${N8N_URL}/api/v1/executions?workflowId=${WORKFLOW_ID}&limit=25`),
-  { headers: { 'X-N8N-API-KEY': API_KEY } }
-);
-
+    const response = await fetch(
+      `https://api.jsonbin.io/v3/b/${JSONBIN_ID}/latest`,
+      { headers: { 'X-Master-Key': JSONBIN_KEY } }
+    );
     const data = await response.json();
-    const executions = data.data || [];
+    const r = data.record;
 
-    // Update total queries with real count
-    document.getElementById('query-count').textContent =
-      executions.length.toLocaleString();
-
-    // Calculate real average response time
-    const times = executions
-      .filter(e => e.stoppedAt && e.startedAt)
-      .map(e => new Date(e.stoppedAt) - new Date(e.startedAt));
-
-    if (times.length > 0) {
-      const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
-      document.getElementById('response-time').textContent = avg + 'ms';
-    } else {
-      document.getElementById('response-time').textContent = '0ms';
-    }
-
-    // Count failed executions as threats
-    const failed = executions.filter(e => e.status === 'error').length;
-    document.getElementById('threat-count').textContent = failed;
-
-    // Update activity log with real execution data
-    const logList = document.getElementById('log-list');
-    logList.innerHTML = '';
-
-    if (executions.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'log-entry info';
-      empty.textContent = 'No executions found yet — run your workflow!';
-      logList.appendChild(empty);
-    } else {
-      executions.slice(0, 8).forEach(e => {
-        const entry = document.createElement('div');
-        const status = e.status === 'success' ? 'success' : 'danger';
-        const time = new Date(e.startedAt).toLocaleTimeString();
-        entry.className = 'log-entry ' + status;
-        entry.textContent = `${time} — Execution ${e.status.toUpperCase()} (ID: ${e.id.slice(0,8)}...)`;
-        logList.appendChild(entry);
-      });
-    }
-
-    console.log('✅ n8n connected! Executions loaded:', executions.length);
-
-  } catch (error) {
-    console.log('❌ n8n connection failed:', error.message);
-
-    // Fall back to demo data if API fails
-    document.getElementById('query-count').textContent = '1,247';
-    document.getElementById('response-time').textContent = '843ms';
-    document.getElementById('threat-count').textContent = '7';
+    document.getElementById('query-count').textContent = r.executions.toLocaleString();
+    document.getElementById('response-time').textContent = r.responseTime + 'ms';
+    document.getElementById('threat-count').textContent = r.errors;
 
     const logList = document.getElementById('log-list');
-    logList.innerHTML = '';
-    demoLogs.forEach((log, i) => {
-      setTimeout(() => addLog(log), i * 500);
-    });
+    const entry = document.createElement('div');
+    entry.className = r.errors > 0 ? 'log-entry danger' : 'log-entry success';
+    entry.textContent = `Last updated: ${r.lastUpdated} — Executions: ${r.executions}`;
+    logList.insertBefore(entry, logList.firstChild);
+
+    console.log('✅ JSONBin connected!', r);
+  } catch(e) {
+    console.log('❌ Error:', e);
   }
 }
 
-// Fetch immediately then every 30 seconds
-fetchN8nData();
-setInterval(fetchN8nData, 30000);
+fetchLiveData();
+setInterval(fetchLiveData, 10000);
 
-// ── 3. DEMO LOGS (used as fallback if API fails) ──
-const demoLogs = [
-  { type: 'success', message: 'Chat message processed — response delivered in 834ms' },
-  { type: 'info',    message: 'Google Drive: file change detected — Jungle Palace 45e.pdf' },
-  { type: 'success', message: 'PDF extracted — 18 chunks embedded into Pinecone' },
-  { type: 'warn',    message: 'High token usage on last query — 4.2k tokens used' },
-  { type: 'danger',  message: 'Suspicious prompt detected — possible injection attempt' },
-];
-
-function addLog(log) {
-  const logList = document.getElementById('log-list');
-  const entry = document.createElement('div');
-  entry.className = 'log-entry ' + log.type;
-  entry.textContent = log.message;
-  logList.insertBefore(entry, logList.firstChild);
-}
-
-// ── 4. VECTORS COUNT (Pinecone - stays as demo for now) ──
+// ── 3. VECTORS COUNT ──
 let v = 0;
 const vEl = document.getElementById('vector-count');
 const vTimer = setInterval(() => {
@@ -111,7 +48,7 @@ const vTimer = setInterval(() => {
   else vEl.textContent = v.toLocaleString();
 }, 16);
 
-// ── 5. SECURITY THREATS TABLE ──
+// ── 4. SECURITY THREATS TABLE ──
 const threats = [
   { time: '16:06:11', event: 'Prompt Injection Attempt',  source: 'Chat Webhook', severity: 'high' },
   { time: '15:43:02', event: 'Unusual Query Pattern',     source: 'AI Agent',     severity: 'med'  },
@@ -134,7 +71,7 @@ threats.forEach((t, i) => {
   }, i * 300);
 });
 
-// ── 6. THREAT DETECTION LINE CHART ──
+// ── 5. THREAT DETECTION LINE CHART ──
 const ctx = document.getElementById('threatChart').getContext('2d');
 new Chart(ctx, {
   type: 'line',
@@ -170,22 +107,12 @@ new Chart(ctx, {
     responsive: true,
     plugins: {
       legend: {
-        labels: {
-          color: '#a8d8ea',
-          font: { family: 'Courier New', size: 11 }
-        }
+        labels: { color: '#a8d8ea', font: { family: 'Courier New', size: 11 } }
       }
     },
     scales: {
-      x: {
-        ticks: { color: '#3a6080', font: { family: 'Courier New', size: 10 } },
-        grid: { color: 'rgba(10,37,64,0.8)' }
-      },
-      y: {
-        ticks: { color: '#3a6080', font: { family: 'Courier New', size: 10 } },
-        grid: { color: 'rgba(10,37,64,0.8)' }
-      }
+      x: { ticks: { color: '#3a6080', font: { family: 'Courier New', size: 10 } }, grid: { color: 'rgba(10,37,64,0.8)' } },
+      y: { ticks: { color: '#3a6080', font: { family: 'Courier New', size: 10 } }, grid: { color: 'rgba(10,37,64,0.8)' } }
     }
   }
 });
-
