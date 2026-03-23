@@ -1,5 +1,5 @@
 const JSONBIN_ID = '69bfbba1aa77b81da9096eea';
-const JSONBIN_KEY = '$2a$10$Hn26zN1NYwQHRVnuLPfXjumfgHscmKPHbf3a1nNpenXM/zuFc.T5i'; // paste from notepad, don't share here!
+const JSONBIN_KEY = '$2a$10$Hn26zN1NYwQHRVnuLPfXjumfgHscmKPHbf3a1nNpenXM/zuFc.T5i';
 
 // ── 1. LIVE CLOCK ──
 function updateClock() {
@@ -9,50 +9,87 @@ function updateClock() {
 }
 setInterval(updateClock, 1000);
 updateClock();
- 
-// ── 2. SIMULATED LIVE DATA (replaces JSONBin) ──
+
+// ── 2. SIMULATED FALLBACK STATE ──
 let executions = 1247;
 let responseTime = 312;
-let threats = 37;
- 
-function fetchLiveData() {
-  // Simulate live changes
-  executions += Math.floor(Math.random() * 5) + 1;
-  responseTime = Math.floor(Math.random() * 200) + 250;
-  if (Math.random() < 0.15) threats += 1;
- 
-  document.getElementById('query-count').textContent = executions.toLocaleString();
-  document.getElementById('response-time').textContent = responseTime + 'ms';
-  document.getElementById('threat-count').textContent = threats;
- 
-  // Live log entry
-  const logMessages = [
-    { msg: 'Query processed — AI Agent responded in ' + responseTime + 'ms', type: 'success' },
-    { msg: 'Pinecone vector retrieval — ' + (Math.floor(Math.random() * 10) + 3) + ' chunks fetched', type: 'info' },
-    { msg: 'Gemini embedding generated successfully', type: 'success' },
-    { msg: 'Drive trigger fired — new document detected', type: 'info' },
-    { msg: 'Rate limit warning — Gemini API at 85% quota', type: 'warn' },
-    { msg: 'Unusual query pattern detected — flagged for review', type: 'danger' },
-  ];
- 
-  const pick = logMessages[Math.floor(Math.random() * logMessages.length)];
+let threatCount = 37;
+
+function addLogEntry(msg, type) {
   const now = new Date().toLocaleTimeString('en-US', { hour12: false });
   const logList = document.getElementById('log-list');
   const entry = document.createElement('div');
-  entry.className = 'log-entry ' + pick.type;
-  entry.textContent = '[' + now + '] ' + pick.msg;
+  entry.className = 'log-entry ' + type;
+  entry.textContent = '[' + now + '] ' + msg;
   logList.insertBefore(entry, logList.firstChild);
- 
-  // Keep log to max 12 entries
   while (logList.children.length > 12) {
     logList.removeChild(logList.lastChild);
   }
 }
- 
+
+// ── 3. REAL JSONBIN FETCH ──
+async function fetchLiveData() {
+  try {
+    const response = await fetch(
+      `https://api.jsonbin.io/v3/b/${JSONBIN_ID}/latest`,
+      { headers: { 'X-Master-Key': JSONBIN_KEY } }
+    );
+
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+
+    const data = await response.json();
+    const r = data.record;
+
+    // Update stats from real data
+    if (r.executions !== undefined) {
+      executions = r.executions;
+      document.getElementById('query-count').textContent = r.executions.toLocaleString();
+    }
+    if (r.responseTime !== undefined) {
+      responseTime = r.responseTime;
+      document.getElementById('response-time').textContent = r.responseTime + 'ms';
+    }
+    if (r.errors !== undefined) {
+      threatCount = r.errors;
+      document.getElementById('threat-count').textContent = r.errors;
+    }
+
+    addLogEntry(
+      `JSONBin sync — Executions: ${r.executions ?? '?'} | Response: ${r.responseTime ?? '?'}ms | Errors: ${r.errors ?? '?'}`,
+      r.errors > 0 ? 'danger' : 'success'
+    );
+
+    console.log('✅ JSONBin connected!', r);
+
+  } catch (e) {
+    // Fallback: simulate live data if JSONBin fails
+    console.warn('⚠️ JSONBin fetch failed, using simulation:', e.message);
+
+    executions += Math.floor(Math.random() * 5) + 1;
+    responseTime = Math.floor(Math.random() * 200) + 250;
+    if (Math.random() < 0.15) threatCount += 1;
+
+    document.getElementById('query-count').textContent = executions.toLocaleString();
+    document.getElementById('response-time').textContent = responseTime + 'ms';
+    document.getElementById('threat-count').textContent = threatCount;
+
+    const logMessages = [
+      { msg: 'Query processed — AI Agent responded in ' + responseTime + 'ms', type: 'success' },
+      { msg: 'Pinecone vector retrieval — ' + (Math.floor(Math.random() * 10) + 3) + ' chunks fetched', type: 'info' },
+      { msg: 'Gemini embedding generated successfully', type: 'success' },
+      { msg: 'Drive trigger fired — new document detected', type: 'info' },
+      { msg: 'Rate limit warning — Gemini API at 85% quota', type: 'warn' },
+      { msg: 'Unusual query pattern detected — flagged for review', type: 'danger' },
+    ];
+    const pick = logMessages[Math.floor(Math.random() * logMessages.length)];
+    addLogEntry(pick.msg, pick.type);
+  }
+}
+
 fetchLiveData();
-setInterval(fetchLiveData, 4000);
- 
-// ── 3. VECTORS COUNT ANIMATION ──
+setInterval(fetchLiveData, 10000);
+
+// ── 4. VECTORS COUNT ANIMATION ──
 let v = 0;
 const vEl = document.getElementById('vector-count');
 const vTimer = setInterval(() => {
@@ -64,16 +101,16 @@ const vTimer = setInterval(() => {
     vEl.textContent = v.toLocaleString();
   }
 }, 16);
- 
-// ── 4. SECURITY THREATS TABLE ──
+
+// ── 5. SECURITY THREATS TABLE ──
 const threatData = [
-  { time: '16:06:11', event: 'Prompt Injection Attempt',  source: 'Chat Webhook', severity: 'high' },
-  { time: '15:43:02', event: 'Unusual Query Pattern',     source: 'AI Agent',     severity: 'med'  },
-  { time: '14:21:44', event: 'API Rate Limit Hit',        source: 'Gemini API',   severity: 'med'  },
-  { time: '13:58:30', event: 'Embedding Model Timeout',   source: 'Pinecone',     severity: 'low'  },
-  { time: '13:10:05', event: 'File Hash Mismatch',        source: 'Google Drive', severity: 'low'  },
+  { time: '16:06:11', event: 'Prompt Injection Attempt', source: 'Chat Webhook', severity: 'high' },
+  { time: '15:43:02', event: 'Unusual Query Pattern',    source: 'AI Agent',     severity: 'med'  },
+  { time: '14:21:44', event: 'API Rate Limit Hit',       source: 'Gemini API',   severity: 'med'  },
+  { time: '13:58:30', event: 'Embedding Model Timeout',  source: 'Pinecone',     severity: 'low'  },
+  { time: '13:10:05', event: 'File Hash Mismatch',       source: 'Google Drive', severity: 'low'  },
 ];
- 
+
 const tbody = document.getElementById('threat-table-body');
 threatData.forEach((t, i) => {
   setTimeout(() => {
@@ -87,8 +124,8 @@ threatData.forEach((t, i) => {
     tbody.appendChild(row);
   }, i * 300);
 });
- 
-// ── 5. THREAT DETECTION LINE CHART ──
+
+// ── 6. THREAT DETECTION LINE CHART ──
 const ctx = document.getElementById('threatChart').getContext('2d');
 const threatChart = new Chart(ctx, {
   type: 'line',
@@ -139,8 +176,8 @@ const threatChart = new Chart(ctx, {
     }
   }
 });
- 
-// ── 6. LIVE CHART UPDATE ──
+
+// ── 7. LIVE CHART UPDATE ──
 setInterval(() => {
   const newThreat = Math.floor(Math.random() * 10) + 15;
   const newResolved = Math.floor(newThreat * 0.75);
